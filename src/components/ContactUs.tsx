@@ -23,18 +23,38 @@ const ContactUs = () => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitStatus("idle");
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      console.log("Form submitted:", formData);
-      setFormData({ name: "", email: "", message: "" });
-      setSubmitStatus("success");
-      setTimeout(() => setSubmitStatus("idle"), 3000);
+      const resp = await fetch('http://localhost:8080/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formData.name, email: formData.email, message: formData.message }),
+      });
+
+      // try to parse response body for better debug info
+      let body: any = null;
+      const ct = resp.headers.get('content-type') || '';
+      try {
+        if (ct.includes('application/json')) body = await resp.json();
+        else body = await resp.text();
+      } catch (err) {
+        body = '(unparsable response)';
+      }
+
+      if (!resp.ok) {
+        console.error('Contact POST failed', { status: resp.status, body });
+        throw new Error(`Server responded ${resp.status} - ${JSON.stringify(body)}`);
+      }
+
+      console.log('Contact POST success', { status: resp.status, body });
+      setFormData({ name: '', email: '', message: '' });
+      setSubmitStatus('success');
+      setTimeout(() => setSubmitStatus('idle'), 3000);
     } catch (error) {
-      console.error("Submission error:", error);
-      setSubmitStatus("error");
-      setTimeout(() => setSubmitStatus("idle"), 3000);
+      console.error('Submission error:', error);
+      setSubmitStatus('error');
+      setTimeout(() => setSubmitStatus('idle'), 3000);
     } finally {
       setIsSubmitting(false);
     }
